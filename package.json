@@ -1,0 +1,19 @@
+{
+  "name": "qaguru_api",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@faker-js/faker": "^9.6.0",
+    "@playwright/test": "^1.50.1",
+    "@types/node": "^22.13.8"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "faker": "^6.6.6"
+  }
+}
