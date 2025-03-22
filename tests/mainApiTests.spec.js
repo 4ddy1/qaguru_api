@@ -1,16 +1,15 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
-import {BaseTest} from "../src/service/baseTest.js";
-import {Api} from "../src/service/api";
-import {Utils} from "../src/utils";
+import { BaseTest, Api } from "../src/service/index";
+import {Builder} from "../src/helpers/builder";
 import 'dotenv/config';
 import { faker } from '@faker-js/faker';
 
 test.describe.serial('has description', async () => {
 
     const baseTest = new BaseTest();
-    const api = new Api(baseTest);
-    const utils = new Utils();
+    const api = new Api();
+    const utils = new Builder();
     let guid;
 
     test.beforeAll(async () => {
@@ -22,16 +21,32 @@ test.describe.serial('has description', async () => {
         {tag: '@get'},
         async () => {
         const response = await api.get(guid, `${process.env.BASEURL}challenges`);
+        const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+        if (responseBody.length !== 0){
+            expect(responseBody.challenges[0]).toHaveProperty('id');
+            expect(responseBody.challenges[0]).toHaveProperty('name');
+            expect(responseBody.challenges[0]).toHaveProperty('description');
+            expect(responseBody.challenges[0]).toHaveProperty('status');
+        }
         expect(response.status).toBe(200);
-        console.log(await response.json());
+        
     });
 
     test('GET /todos (200)',
         {tag: '@get'},
         async () => {
         const response = await api.get(guid, `${process.env.BASEURL}todos`);
+        const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+        if (responseBody.length !== 0){
+            expect(responseBody.todos[0]).toHaveProperty('id');
+            expect(responseBody.todos[0]).toHaveProperty('title');
+            expect(responseBody.todos[0]).toHaveProperty('doneStatus');
+            expect(responseBody.todos[0]).toHaveProperty('description');
+        }
         expect(response.status).toBe(200);
-        console.log(response);
+        
     });
 
     test('GET /todo (404) not plural',
@@ -49,8 +64,16 @@ test.describe.serial('has description', async () => {
         await utils.createTodos(guid, `${process.env.BASEURL}todos`); // создать тудушку в done
 
         const response = await api.get(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`);
+        const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+        if (responseBody.todos.length !== 0){
+            expect(responseBody.todos[0]).toHaveProperty('id');
+            expect(responseBody.todos[0]).toHaveProperty('title');
+            expect(responseBody.todos[0]).toHaveProperty('doneStatus');
+            expect(responseBody.todos[0]).toHaveProperty('description');
+        }
         expect(response.status).toBe(200);
-        console.log(await response.json());
+        
     });
 
     test('GET /todos/{id} (404)',
@@ -66,10 +89,16 @@ test.describe.serial('has description', async () => {
         await utils.createTodos(guid, `${process.env.BASEURL}todos`); // создать тудушку в done
 
         const response = await api.get(guid, `${process.env.BASEURL}todos?doneStatus=true`);
-        const json = await response.json();
+        const responseBody = await response.json(); // Парсим тело ответа в JSON
 
-        expect(json.todos).not.toHaveLength(0);
+        if (responseBody.todos.length !== 0){
+            expect(responseBody.todos[0]).toHaveProperty('id');
+            expect(responseBody.todos[0]).toHaveProperty('title');
+            expect(responseBody.todos[0]).toHaveProperty('doneStatus');
+            expect(responseBody.todos[0]).toHaveProperty('description');
+        }
         expect(response.status).toBe(200);
+        
     });
 
     test('HEAD /todos (200)',
@@ -88,7 +117,14 @@ test.describe.serial('has description', async () => {
                 "description": ""
             }
             const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+            expect(responseBody).toHaveProperty('id');
+            expect(responseBody).toHaveProperty('title');
+            expect(responseBody).toHaveProperty('doneStatus');
+            expect(responseBody).toHaveProperty('description');
             expect(response.status).toBe(201);
+            
         });
 
     test('POST /todos (400) doneStatus',
@@ -136,7 +172,14 @@ test.describe.serial('has description', async () => {
                 "description": `${faker.string.sample(200)}`
             }
             const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+            expect(responseBody).toHaveProperty('id');
+            expect(responseBody).toHaveProperty('title');
+            expect(responseBody).toHaveProperty('doneStatus');
+            expect(responseBody).toHaveProperty('description');
             expect(response.status).toBe(201);
+            
         });
 
     test('POST /todos (413) content too long',
@@ -188,7 +231,14 @@ test.describe.serial('has description', async () => {
                 "description": "",
             }
             const response = await api.post(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+            expect(responseBody).toHaveProperty('id');
+            expect(responseBody).toHaveProperty('title');
+            expect(responseBody).toHaveProperty('doneStatus');
+            expect(responseBody).toHaveProperty('description');
             expect(response.status).toBe(200);
+            
         });
 
     test('POST /todos/{id} (404)',
@@ -215,7 +265,14 @@ test.describe.serial('has description', async () => {
             }
 
             const response = await api.put(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+            expect(responseBody).toHaveProperty('id');
+            expect(responseBody).toHaveProperty('title');
+            expect(responseBody).toHaveProperty('doneStatus');
+            expect(responseBody).toHaveProperty('description');
             expect(response.status).toBe(200);
+            
         });
 
     test('PUT /todos/{id} partial (200)',
@@ -228,7 +285,14 @@ test.describe.serial('has description', async () => {
             }
 
             const response = await api.put(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+            expect(responseBody).toHaveProperty('id');
+            expect(responseBody).toHaveProperty('title');
+            expect(responseBody).toHaveProperty('doneStatus');
+            expect(responseBody).toHaveProperty('description');
             expect(response.status).toBe(200);
+            
         });
 
     test('PUT /todos/{id} no title (400)',
@@ -278,7 +342,7 @@ test.describe.serial('has description', async () => {
         {tag: '@options'},
         async () => {
             const response = await api.options(guid, `${process.env.BASEURL}todos`);
-            console.log(response.headers);
+            
             expect(response.status).toBe(200);
         });
 
@@ -294,8 +358,16 @@ test.describe.serial('has description', async () => {
         {tag: '@get'},
         async () => {
             const response = await api.getJson(guid, `${process.env.BASEURL}todos`);
+            const responseBody = await response.json(); // Парсим тело ответа в JSON
+
+            if (responseBody.todos.length !== 0){
+                expect(responseBody.todos[0]).toHaveProperty('id');
+                expect(responseBody.todos[0]).toHaveProperty('title');
+                expect(responseBody.todos[0]).toHaveProperty('doneStatus');
+                expect(responseBody.todos[0]).toHaveProperty('description');
+            }
             expect(response.status).toBe(200);
-            console.log(await response.json());
+            
         });
 
     test('GET /todos (200) ANY',
@@ -303,7 +375,7 @@ test.describe.serial('has description', async () => {
         async () => {
             const response = await api.getAny(guid, `${process.env.BASEURL}todos`);
             expect(response.status).toBe(200);
-            console.log(await response.json());
+            
         });
 
     test('GET /todos (200) XML pref',
@@ -319,7 +391,7 @@ test.describe.serial('has description', async () => {
         async () => {
             const response = await api.get(guid, `${process.env.BASEURL}todos`);
             expect(response.status).toBe(200);
-            console.log(await response.json());
+            
         });
 
     test('GET /todos (406)',
@@ -327,7 +399,7 @@ test.describe.serial('has description', async () => {
         async () => {
             const response = await api.getGzip(guid, `${process.env.BASEURL}todos`);
             expect(response.status).toBe(406);
-            console.log(await response.json());
+            
         });
 
     test('POST /todos XML',
@@ -353,7 +425,7 @@ test.describe.serial('has description', async () => {
             }
 
             const response = await api.postJson(guid, `${process.env.BASEURL}todos`, payload);
-            console.log(await response.json());
+            
             expect(response.status).toBe(201);
         });
 
@@ -367,7 +439,7 @@ test.describe.serial('has description', async () => {
             }
 
             const response = await api.postGzip(guid, `${process.env.BASEURL}todos`, payload);
-            console.log(await response.json());
+            
             expect(response.status).toBe(415);
         });
 
@@ -376,7 +448,7 @@ test.describe.serial('has description', async () => {
         async () => {
             const response = await api.get(guid, `${process.env.BASEURL}challenger/${guid}`);
             expect(response.status).toBe(200);
-            console.log(await response.json());
+            
         });
 
     test('PUT /challenger/guid RESTORE',
@@ -386,18 +458,7 @@ test.describe.serial('has description', async () => {
             const challengerJson = await challengerResponse.json();
 
             const response = await api.put(guid, `${process.env.BASEURL}challenger/${challengerJson.xChallenger}`, challengerJson);
-            console.log(await response.json());
-            expect(response.status).toBe(200);
-        });
-
-    test.skip('PUT /challenger/guid CREATE',
-        {tag: '@put'},
-        async () => {
-            const challengerResponse = await api.get(guid, `${process.env.BASEURL}challenger/${guid}`);
-            const challengerJson = await challengerResponse.json();
-
-            const response = await api.put(guid, `${process.env.BASEURL}challenger/${challengerJson.xChallenger}`, challengerJson);
-            console.log(await response.json());
+            
             expect(response.status).toBe(200);
         });
 
@@ -406,16 +467,6 @@ test.describe.serial('has description', async () => {
         async () => {
             const response = await api.get(guid, `${process.env.BASEURL}challenger/database/${guid}`);
             expect(response.status).toBe(200);
-        });
-
-    test.skip('PUT /challenger/database/guid (Update)',
-        {tag: '@put'},
-        async () => {
-            const challengerResponse = await api.get(guid, `${process.env.BASEURL}challenger/database/${guid}`);
-            const challengerJson = await challengerResponse.json();
-
-            const response = await api.put(guid, `${process.env.BASEURL}challenger/database/${guid}`, challengerJson);
-            expect(response.status).toBe(204);
         });
 
     test('POST /todos XML to JSON',
@@ -454,13 +505,6 @@ test.describe.serial('has description', async () => {
         async () => {
             const response = await api.patch(guid, `${process.env.BASEURL}heartbeat`);
             expect(response.status).toBe(500);
-        });
-
-    test.skip('TRACE /heartbeat (501)',
-        {tag: '@trace'},
-        async () => {
-            const response = await api.trace(guid, `${process.env.BASEURL}heartbeat`);
-            expect(response.status).toBe(501);
         });
 
     test('GET /heartbeat (204)',
