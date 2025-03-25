@@ -1,16 +1,20 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 import { BaseTest, Api } from "../src/service/index";
-import { Builder, Requests } from "../src/helpers/index"
+import { Builder } from "../src/helpers/index";
+import { Challenges, Todos, Heartbeats } from "../src/controllers/index";
 import 'dotenv/config';
 import { faker } from '@faker-js/faker';
+import {todo} from "node:test";
 
 test.describe.serial('has description', async () => {
 
     const baseTest = new BaseTest();
     const api = new Api();
     const utils = new Builder();
-    const requests = new Requests();
+    const todos = new Todos();
+    const challenges = new Challenges();
+    const heartbeats = new Heartbeats();
     let guid;
 
     test.beforeAll(async () => {
@@ -21,7 +25,7 @@ test.describe.serial('has description', async () => {
     test('GET /challenges',
         {tag: '@get'},
         async () => {
-        const response = await requests.getChallenges(guid);
+        const response = await challenges.getChallenges(guid);
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.length !== 0){
@@ -37,7 +41,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200)',
         {tag: '@get'},
         async () => {
-        const response = await requests.getTodos(guid);
+        const response = await todos.getTodos(guid);
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.length !== 0){
@@ -53,18 +57,18 @@ test.describe.serial('has description', async () => {
     test('GET /todo (404) not plural',
         {tag: '@get'},
         async () => {
-        const response = await requests.getTodo(guid);
+        const response = await todos.getTodo(guid);
         expect(response.status).toBe(404);
     });
 
     test('GET /todos/{id} (200)',
         {tag: '@get'},
         async () => {
-        const todoId = await requests.getTodos(guid); // запрос тудушек
+        const todoId = await todos.getTodos(guid); // запрос тудушек
         const id = await todoId.json(); // парсинг в json
         await utils.createTodos(guid); // создать тудушку в done
 
-        const response = await requests.getTodosId(guid);
+        const response = await todos.getTodosId(guid, id);
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.todos.length !== 0){
@@ -80,16 +84,16 @@ test.describe.serial('has description', async () => {
     test('GET /todos/{id} (404)',
         {tag: '@get'},
         async () => {
-        const response = await api.get(guid, `${process.env.BASEURL}todos/4dasd5`); // несуществующий id
+        const response = await todos.getTodosInvalidId(guid); // несуществующий id
         expect(response.status).toBe(404);
     });
 
     test('GET /todos (200) ?filter',
         {tag: '@get'},
         async () => {
-        await utils.createTodos(guid, `${process.env.BASEURL}todos`); // создать тудушку в done
+        await utils.createTodos(guid); // создать тудушку в done
 
-        const response = await api.get(guid, `${process.env.BASEURL}todos?doneStatus=true`);
+        const response = await todos.getTodosDone();
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.todos.length !== 0){
@@ -105,19 +109,14 @@ test.describe.serial('has description', async () => {
     test('HEAD /todos (200)',
         {tag: '@head'},
         async () => {
-        const response = await api.head(guid, `${process.env.BASEURL}todos`);
+        const response = await todos.headTodos(guid);
         expect(response.status).toBe(200);
     });
 
     test('POST /todos (201)',
         {tag: '@post'},
         async () => {
-            const payload = {
-                "title": `adil test${faker.number.int({max:9999999999999999})}`,
-                "doneStatus": true,
-                "description": ""
-            }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid);
             const responseBody = await response.json(); // Парсим тело ответа в JSON
 
             expect(responseBody).toHaveProperty('id');
@@ -125,7 +124,6 @@ test.describe.serial('has description', async () => {
             expect(responseBody).toHaveProperty('doneStatus');
             expect(responseBody).toHaveProperty('description');
             expect(response.status).toBe(201);
-            
         });
 
     test('POST /todos (400) doneStatus',
@@ -136,7 +134,7 @@ test.describe.serial('has description', async () => {
                 "doneStatus": 'adil',
                 "description": ""
             }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid, payload);
             expect(response.status).toBe(400);
         });
 
@@ -148,7 +146,7 @@ test.describe.serial('has description', async () => {
                 "doneStatus": true,
                 "description": ""
             }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid, payload);
             expect(response.status).toBe(400);
         });
 
@@ -160,7 +158,7 @@ test.describe.serial('has description', async () => {
                 "doneStatus": true,
                 "description": `${faker.string.sample(500)}`
             }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid, payload);
             expect(response.status).toBe(400);
         });
 
@@ -172,7 +170,7 @@ test.describe.serial('has description', async () => {
                 "doneStatus": true,
                 "description": `${faker.string.sample(200)}`
             }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid, payload);
             const responseBody = await response.json(); // Парсим тело ответа в JSON
 
             expect(responseBody).toHaveProperty('id');
@@ -191,7 +189,7 @@ test.describe.serial('has description', async () => {
                 "doneStatus": true,
                 "description": `${faker.string.sample(5000)}`
             }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid, payload);
             expect(response.status).toBe(413);
         });
 
@@ -204,7 +202,7 @@ test.describe.serial('has description', async () => {
                 "description": "",
                 "priority": "extra"
             }
-            const response = await api.post(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodos(guid, payload);
             expect(response.status).toBe(400);
         });
 
@@ -217,21 +215,17 @@ test.describe.serial('has description', async () => {
                 "description": "",
             }
 
-            const response = await api.put(guid, `${process.env.BASEURL}todos/00`, payload);
+            const response = await todos.putTodos(guid, payload);
             expect(response.status).toBe(400);
         });
 
     test('POST /todos/{id} (200)',
         {tag: '@post'},
         async () => {
-            const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+            const todoId = await todos.getTodos(); // запрос тудушек
             const id = await todoId.json(); // парсинг в json
-            const payload = {
-                "title": `adil test${faker.number.int({max:9999999999999999})}`,
-                "doneStatus": true,
-                "description": "",
-            }
-            const response = await api.post(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+
+            const response = await todos.postTodosId(guid, id);
             const responseBody = await response.json(); // Парсим тело ответа в JSON
 
             expect(responseBody).toHaveProperty('id');
@@ -245,27 +239,18 @@ test.describe.serial('has description', async () => {
     test('POST /todos/{id} (404)',
         {tag: '@post'},
         async () => {
-            const payload = {
-                "title": `adil test${faker.number.int({max:9999999999999999})}`,
-                "doneStatus": true,
-                "description": "",
-            }
-            const response = await api.post(guid, `${process.env.BASEURL}todos/00`, payload);
+
+            const response = await todos.postTodosInvalidId(guid);
             expect(response.status).toBe(404);
         });
 
     test('PUT /todos/{id} full (200)',
         {tag: '@put'},
         async () => {
-            const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+            const todoId = await todos.getTodos(); // запрос тудушек
             const id = await todoId.json(); // парсинг в json
-            const payload = {
-                "title": `adil test${faker.number.int({max:9999999999999999})}`,
-                "doneStatus": true,
-                "description": "",
-            }
 
-            const response = await api.put(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const response = await todos.putTodosId(guid, id);
             const responseBody = await response.json(); // Парсим тело ответа в JSON
 
             expect(responseBody).toHaveProperty('id');
@@ -279,13 +264,13 @@ test.describe.serial('has description', async () => {
     test('PUT /todos/{id} partial (200)',
         {tag: '@put'},
         async () => {
-            const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+            const todoId = await todos.getTodos(); // запрос тудушек
             const id = await todoId.json(); // парсинг в json
             const payload = {
                 "title": `adil test${faker.number.int({max:9999999999999999})}`,
             }
 
-            const response = await api.put(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const response = await todos.putTodosId(guid, id, payload);
             const responseBody = await response.json(); // Парсим тело ответа в JSON
 
             expect(responseBody).toHaveProperty('id');
@@ -299,21 +284,21 @@ test.describe.serial('has description', async () => {
     test('PUT /todos/{id} no title (400)',
         {tag: '@put'},
         async () => {
-            const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+            const todoId = await todos.getTodos(); // запрос тудушек
             const id = await todoId.json(); // парсинг в json
             const payload = {
                 "doneStatus": true,
                 "description": "",
             }
 
-            const response = await api.put(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const response = await todos.putTodosId(guid, id, payload);
             expect(response.status).toBe(400);
         });
 
     test('PUT /todos/{id} no amend id (400)',
         {tag: '@put'},
         async () => {
-            const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+            const todoId = await todos.getTodos(); // запрос тудушек
             const id = await todoId.json(); // парсинг в json
             const payload = {
                 "title": `adil test${faker.number.int({max:9999999999999999})}`,
@@ -322,27 +307,27 @@ test.describe.serial('has description', async () => {
                 "id": 10
             }
 
-            const response = await api.put(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`, payload);
+            const response = await todos.putTodosId(guid, id, payload);
             expect(response.status).toBe(400);
         });
 
     test('DELETE /todos/{id} (200)',
         {tag: '@delete'},
         async () => {
-            const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+            const todoId = await todos.getTodos(); // запрос тудушек
             const id = await todoId.json(); // парсинг в json
 
-            const response = await api.delete(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`); // удалить
+            const response = await todos.deleteTodosId(guid, id); // удалить
             expect(response.status).toBe(200);
 
-            const getTodo = await api.get(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`) // запросить для проверки удаления
+            const getTodo = await todos.getTodosId(guid, id); // запросить для проверки удаления
             expect(getTodo.status).toBe(404)
         });
 
     test('OPTIONS /todos (200)',
         {tag: '@options'},
         async () => {
-            const response = await api.options(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.optionsTodos(guid);
             
             expect(response.status).toBe(200);
         });
@@ -350,7 +335,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200) XML',
         {tag: '@get'},
         async () => {
-            const response = await api.getXml(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.getTodosXml(guid);
             expect(response.status).toBe(200);
             console.log(await response.text());
         });
@@ -358,7 +343,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200) JSON',
         {tag: '@get'},
         async () => {
-            const response = await api.getJson(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.getTodosJson(guid);
             const responseBody = await response.json(); // Парсим тело ответа в JSON
 
             if (responseBody.todos.length !== 0){
@@ -374,7 +359,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200) ANY',
         {tag: '@get'},
         async () => {
-            const response = await api.getAny(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.getTodosAny(guid);
             expect(response.status).toBe(200);
             
         });
@@ -382,7 +367,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200) XML pref',
         {tag: '@get'},
         async () => {
-            const response = await api.getXmlPref(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.getTodosXmlPref(guid);
             expect(response.status).toBe(200);
             console.log(await response.text());
         });
@@ -390,7 +375,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200) no accept',
         {tag: '@get'},
         async () => {
-            const response = await api.get(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.getTodos(guid);
             expect(response.status).toBe(200);
             
         });
@@ -398,7 +383,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (406)',
         {tag: '@get'},
         async () => {
-            const response = await api.getGzip(guid, `${process.env.BASEURL}todos`);
+            const response = await todos.getTodosGzip(guid);
             expect(response.status).toBe(406);
             
         });
@@ -411,7 +396,7 @@ test.describe.serial('has description', async () => {
                 <description/>
                 <title>adil test${faker.number.int({max: 9999999999999999})}</title>`
 
-            const response = await api.postXml(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodosXml(guid, payload);
             console.log(await response.text());
             expect(response.status).toBe(201);
         });
@@ -425,7 +410,7 @@ test.describe.serial('has description', async () => {
                 "description": "",
             }
 
-            const response = await api.postJson(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodosJson(guid, payload);
             
             expect(response.status).toBe(201);
         });
@@ -439,7 +424,7 @@ test.describe.serial('has description', async () => {
                 "description": "",
             }
 
-            const response = await api.postGzip(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodosGzip(guid, payload);
             
             expect(response.status).toBe(415);
         });
@@ -447,7 +432,7 @@ test.describe.serial('has description', async () => {
     test('GET /challenger/guid (existing X-CHALLENGER)',
         {tag: '@get'},
         async () => {
-            const response = await api.get(guid, `${process.env.BASEURL}challenger/${guid}`);
+            const response = await challenges.getChallengesGuid(guid)
             expect(response.status).toBe(200);
             
         });
@@ -455,10 +440,10 @@ test.describe.serial('has description', async () => {
     test('PUT /challenger/guid RESTORE',
         {tag: '@put'},
         async () => {
-            const challengerResponse = await api.get(guid, `${process.env.BASEURL}challenger/${guid}`);
+            const challengerResponse = await challenges.getChallengesGuid(guid)
             const challengerJson = await challengerResponse.json();
 
-            const response = await api.put(guid, `${process.env.BASEURL}challenger/${challengerJson.xChallenger}`, challengerJson);
+            const response = await challenges.putChallengesGuid(guid, challengerJson);
             
             expect(response.status).toBe(200);
         });
@@ -466,7 +451,7 @@ test.describe.serial('has description', async () => {
     test('GET /challenger/database/guid (200)',
         {tag: '@get'},
         async () => {
-            const response = await api.get(guid, `${process.env.BASEURL}challenger/database/${guid}`);
+            const response = await challenges.getChallengerDatabase(guid)
             expect(response.status).toBe(200);
         });
 
@@ -478,7 +463,7 @@ test.describe.serial('has description', async () => {
                 <description/>
                 <title>adil test${faker.number.int({max: 9999999999999999})}</title>`
 
-            const response = await api.postXmlToJson(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodosXmlToJson(guid, payload);
             expect(response.status).toBe(201);
         });
 
@@ -490,28 +475,28 @@ test.describe.serial('has description', async () => {
                 "doneStatus": true,
                 "description": ""
             }
-            const response = await api.postJsonToXml(guid, `${process.env.BASEURL}todos`, payload);
+            const response = await todos.postTodosJsonToXml(guid, payload);
             expect(response.status).toBe(201);
         });
 
     test('DELETE /heartbeat (405)',
         {tag: '@delete'},
         async () => {
-            const response = await api.delete(guid, `${process.env.BASEURL}heartbeat`);
+            const response = await heartbeats.deleteHeartbeats(guid);
             expect(response.status).toBe(405);
         });
 
     test('PATCH /heartbeat (500)',
         {tag: '@patch'},
         async () => {
-            const response = await api.patch(guid, `${process.env.BASEURL}heartbeat`);
+            const response = await heartbeats.patchHeartbeats(guid);
             expect(response.status).toBe(500);
         });
 
     test('GET /heartbeat (204)',
         {tag: '@get'},
         async () => {
-            const response = await api.get(guid, `${process.env.BASEURL}heartbeat`);
+            const response = await heartbeats.getHeartbeats(guid);
             expect(response.status).toBe(204);
         });
 })
