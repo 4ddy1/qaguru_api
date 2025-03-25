@@ -11,9 +11,9 @@ export class Builder {
         }
     }
 
-    async createTodos(guid, url, payload){
+    async createTodos(guid, payload){
         const api = new Api();
 
-        return await api.post(guid, url, payload || this.todoPayload);
+        return await api.post(guid, `${process.env.BASEURL}todos`, payload || this.todoPayload);
     }
 }

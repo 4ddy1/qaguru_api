@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 import { BaseTest, Api } from "../src/service/index";
-import {Builder} from "../src/helpers/builder";
+import { Builder, Requests } from "../src/helpers/index"
 import 'dotenv/config';
 import { faker } from '@faker-js/faker';
 
@@ -10,6 +10,7 @@ test.describe.serial('has description', async () => {
     const baseTest = new BaseTest();
     const api = new Api();
     const utils = new Builder();
+    const requests = new Requests();
     let guid;
 
     test.beforeAll(async () => {
@@ -20,7 +21,7 @@ test.describe.serial('has description', async () => {
     test('GET /challenges',
         {tag: '@get'},
         async () => {
-        const response = await api.get(guid, `${process.env.BASEURL}challenges`);
+        const response = await requests.getChallenges(guid);
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.length !== 0){
@@ -36,7 +37,7 @@ test.describe.serial('has description', async () => {
     test('GET /todos (200)',
         {tag: '@get'},
         async () => {
-        const response = await api.get(guid, `${process.env.BASEURL}todos`);
+        const response = await requests.getTodos(guid);
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.length !== 0){
@@ -52,18 +53,18 @@ test.describe.serial('has description', async () => {
     test('GET /todo (404) not plural',
         {tag: '@get'},
         async () => {
-        const response = await api.get(guid, `${process.env.BASEURL}todo`);
+        const response = await requests.getTodo(guid);
         expect(response.status).toBe(404);
     });
 
     test('GET /todos/{id} (200)',
         {tag: '@get'},
         async () => {
-        const todoId = await api.get(guid, `${process.env.BASEURL}todos`) // запрос тудушек
+        const todoId = await requests.getTodos(guid); // запрос тудушек
         const id = await todoId.json(); // парсинг в json
-        await utils.createTodos(guid, `${process.env.BASEURL}todos`); // создать тудушку в done
+        await utils.createTodos(guid); // создать тудушку в done
 
-        const response = await api.get(guid, `${process.env.BASEURL}todos/${id.todos[0].id}`);
+        const response = await requests.getTodosId(guid);
         const responseBody = await response.json(); // Парсим тело ответа в JSON
 
         if (responseBody.todos.length !== 0){
