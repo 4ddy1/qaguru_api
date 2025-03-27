@@ -97,6 +97,12 @@ export class Api{
         return response;
     }
 
+    async postGuid(url){ // метод для запроса гуид
+        return await fetch(url, {
+            method: 'POST'
+        })
+    }
+
     async postXml(guid, url, payload){
         const response = await fetch(url, {
             method: 'POST',

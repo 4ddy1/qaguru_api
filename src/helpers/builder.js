@@ -1,9 +1,8 @@
-import {Api} from "./service/api";
+import {Api} from "../service/api";
 import 'dotenv/config';
-import {expect} from "@playwright/test";
 import {faker} from "@faker-js/faker";
 
-export class Utils{
+export class Builder {
     constructor() {
         this.todoPayload = {
             "title": `adil test${faker.number.int({max:9999999999999999})}`,
@@ -12,11 +11,9 @@ export class Utils{
         }
     }
 
-    async createTodos(guid, url, payload){
+    async createTodos(guid, payload){
         const api = new Api();
 
-        const response = await api.post(guid, url, payload || this.todoPayload);
-        expect(response.status).toBe(201);
-        return response;
+        return await api.post(guid, `${process.env.BASEURL}todos`, payload || this.todoPayload);
     }
 }
